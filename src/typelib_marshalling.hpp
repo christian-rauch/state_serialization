@@ -1,3 +1,6 @@
+#ifndef SERIALIZATION_TYPELIB_HPP
+#define SERIALIZATION_TYPELIB_HPP
+
 #include <rtt/typelib/TypelibMarshaller.hpp>
 #include <base/logging.h>
 
@@ -62,3 +65,5 @@ Type* getUnmarshalledTypelib(const std::string type_name, std::vector<uint8_t>& 
 };
 
 }
+
+#endif // SERIALIZATION_TYPELIB_HPP
