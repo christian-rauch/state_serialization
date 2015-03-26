@@ -15,20 +15,19 @@ std::vector<uint8_t>* getMarshalledTypelib(const std::string type_name, Type& da
     
     LOG_DEBUG_S<<"Marshalled type: "<<marshaller->getMarshallingType();
     
-    orogen_transports::TypelibMarshallerBase::Handle data_handle(marshaller, &data);
-    
-    // do not destroy samples when Handle is deconstructed
-    data_handle.owns_typelib = false;
-    data_handle.owns_orocos = false;
+    orogen_transports::TypelibMarshallerBase::Handle *data_handle = marshaller->createHandle();
+    marshaller->setOrocosSample(data_handle, &data);
 
     std::vector<uint8_t> *data_serialized = new std::vector<uint8_t>();
     
     try {
-        marshaller->marshal(*data_serialized, &data_handle);
+        marshaller->marshal(*data_serialized, data_handle);
     }
     catch(std::exception& e) {
         LOG_ERROR_S<<"Exception during marshalling: "<<e.what();
     }
+    
+    marshaller->deleteHandle(data_handle);
     
     return data_serialized;
 };
@@ -43,22 +42,21 @@ Type* getUnmarshalledTypelib(const std::string type_name, std::vector<uint8_t>& 
         LOG_DEBUG_S<<"Exception when fetching marshaller: "<<e.what();
     }
     
-    LOG_ERROR_S<<"Marshalled type: "<<marshaller->getMarshallingType();
+    LOG_DEBUG_S<<"Marshalled type: "<<marshaller->getMarshallingType();
     
     Type *data = new Type();
     
-    orogen_transports::TypelibMarshallerBase::Handle data_serialized_handle(marshaller, data);
-    
-    // do not destroy samples when Handle is deconstructed
-    data_serialized_handle.owns_typelib = false;
-    data_serialized_handle.owns_orocos = false;
+    orogen_transports::TypelibMarshallerBase::Handle *data_serialized_handle = marshaller->createHandle();
+    marshaller->setOrocosSample(data_serialized_handle, data);
     
     try {
-        marshaller->unmarshal(data_serialized, &data_serialized_handle);
+        marshaller->unmarshal(data_serialized, data_serialized_handle);
     }
     catch(std::exception& e) {
         LOG_ERROR_S<<"Exception during unmarshalling: "<<e.what();
     }
+    
+    marshaller->deleteHandle(data_serialized_handle);
     
     return data;
 };
