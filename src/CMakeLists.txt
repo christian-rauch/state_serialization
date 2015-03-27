@@ -1,5 +1,5 @@
 rock_library(serialization
-    SOURCES typelib_marshalling.cpp
+    #SOURCES typelib_marshalling.cpp
     HEADERS
     typelib_marshalling.hpp
     eigen.hpp
