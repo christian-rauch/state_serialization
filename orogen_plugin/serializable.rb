@@ -1,8 +1,7 @@
 class TaskSerializationPlugin <  OroGen::Spec::TaskModelExtension
-
     attr_accessor :archive_type
     
-    def register_for_generation(task)
+    def early_register_for_generation(task)
         # header for polymorphic archives
         task.add_base_header_code("#include <boost/archive/polymorphic_#{archive_type}_oarchive.hpp>")
         task.add_base_header_code("#include <boost/archive/polymorphic_#{archive_type}_iarchive.hpp>")
@@ -11,60 +10,63 @@ class TaskSerializationPlugin <  OroGen::Spec::TaskModelExtension
         # virtual methods for de-/serialization in users tasks
         task.add_base_method("void", "serialize", "boost::archive::polymorphic_oarchive &oa")
         task.add_base_method("void", "deserialize", "boost::archive::polymorphic_iarchive &ia")
-    end
-    
-    ## code for operations
-    
-    def op_getstate_body
+        
+        # implement operations
+        
         getstate_body =
-'    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
-    boost::archive::polymorphic_'+archive_type+'_oarchive oa(ss);
-    
-    serialize(oa);
-    
-    std::vector<boost::int8_t> state;
-    const std::streampos s_end = ss.tellp();
-    state.resize(s_end);
-    
-    ss.read(reinterpret_cast<char*>(state.data()), s_end);
-    
-    return state;'
-        return getstate_body
-    end
-    
-    def op_setstate_body
+        "    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);\n"\
+        "    boost::archive::polymorphic_#{archive_type}_oarchive oa(ss);\n"\
+        "    \n"\
+        "    serialize(oa);\n"\
+        "    \n"\
+        "    std::vector<boost::int8_t> state;\n"\
+        "    const std::streampos s_end = ss.tellp();\n"\
+        "    state.resize(s_end);\n"\
+        "    \n"\
+        "    ss.read(reinterpret_cast<char*>(state.data()), s_end);\n"\
+        "    \n"\
+        "    return state;"
+        
+        task.operations['getState'].
+            base_body(getstate_body)
+        
+        
         setstate_body =
-'    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);
-    ss.write(reinterpret_cast<const char*>(data.data()), data.size());
+        "    std::stringstream ss(std::ios::binary | std::ios::in | std::ios::out);\n"\
+        "    ss.write(reinterpret_cast<const char*>(data.data()), data.size());\n"\
+        "    \n"\
+        "    boost::archive::polymorphic_#{archive_type}_iarchive ia(ss);\n"\
+        "    \n"\
+        "    deserialize(ia);"
     
-    boost::archive::polymorphic_'+archive_type+'_iarchive ia(ss);
-    
-    deserialize(ia);'
-        return setstate_body
-    end
-    
-    def op_getstatefile_body
+        task.operations['setState'].
+            base_body(setstate_body)
+        
+        
         getstatefile_body =
-'    const std::string statepath = path.empty() ? tmpnam(NULL) : path;
-
-    std::ofstream ofs(statepath.c_str());
-    boost::archive::polymorphic_'+archive_type+'_oarchive oa(ofs);
+        "    const std::string statepath = path.empty() ? tmpnam(NULL) : path;\n"\
+        "    \n"\
+        "    std::ofstream ofs(statepath.c_str());\n"\
+        "    boost::archive::polymorphic_#{archive_type}_oarchive oa(ofs);\n"\
+        "    \n"\
+        "    serialize(oa);\n"\
+        "    \n"\
+        "    return statepath;"
     
-    serialize(oa);
+        task.operations['getStateFile'].
+            base_body(getstatefile_body)
     
-    return statepath;'
-        return getstatefile_body
-    end
     
-    def op_setstatefile_body
         setstatefile_body =
-'    std::ifstream ifs(path.c_str());
-    boost::archive::polymorphic_'+archive_type+'_iarchive ia(ifs);
+        "    std::ifstream ifs(path.c_str());\n"\
+        "    boost::archive::polymorphic_#{archive_type}_iarchive ia(ifs);\n"\
+        "    \n"\
+        "    deserialize(ia);"
     
-    deserialize(ia);'
-        return setstatefile_body
+        task.operations['setStateFile'].
+            base_body(setstatefile_body)
+    
     end
-    
 end
 
 class Orocos::Spec::TaskContext
@@ -75,17 +77,17 @@ class Orocos::Spec::TaskContext
             plugin = TaskSerializationPlugin.new(plugin_name)
             plugin.archive_type = archive_type
             
-            #operations
-            hidden_operation('getState', plugin.op_getstate_body).
+            # operations
+            hidden_operation('getState').
                 returns('/std/vector<char>')
             
-            hidden_operation('setState', plugin.op_setstate_body).
+            hidden_operation('setState').
                 argument('data', '/std/vector<char>')
                 
-            hidden_operation('getStateFile', plugin.op_getstatefile_body).
+            hidden_operation('getStateFile').
                 argument('path', 'string').returns('string')
                 
-            hidden_operation('setStateFile', plugin.op_setstatefile_body).
+            hidden_operation('setStateFile').
                 argument('path', 'string')
             
             # generate code
