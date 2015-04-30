@@ -3,17 +3,10 @@
   
   </description>
   <author>Christian Rauch/Christian.Rauch@dfki.de</author>
-  <license>GPL v2</license>
+  <license>LGPL 3</license>
   <url>http://</url>
   <logo>http://</logo>
   <depend package="base/cmake" />
-  <!--
-   To add any dependencies use the depend tag
-  <depend package="dummy-dependency-0" />
-	...
-  <depend package="dummy-dependency-n-1" />
-  <depend package="dummy-dependency-n" />
-  -->
   <depend package="boost" />
   <depend package="rtt_typelib" />
 </package>
