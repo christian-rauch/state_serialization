@@ -69,7 +69,7 @@ class TaskSerializationPlugin <  OroGen::Spec::TaskModelExtension
     end
 end
 
-class Orocos::Spec::TaskContext
+class OroGen::Spec::TaskContext
     def serializable(archive_type)
         plugin_name = "TaskSerializationPlugin"
         if !find_extension(plugin_name)
