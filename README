@@ -1,27 +1,50 @@
-NOTE
-This directory structure follows some simple rules, to allow for generic build
-processes and simplify reuse of this project. 
+To use serialization within an orogen task, it needs to depend on the
+state_serialization library by adding:
+    <depend package="tools/state_serialization" />
+to the manifest.xml.
 
-For build automation the project structure should be parsed and validated
+The orogen plugin is activated by adding
+    serializable(<type>)
+to the *.orogen, where <type>={"text","binary"}.
 
+The orogen plugin will generate methods in the base and user task. The base task
+methods provide the common operations used for the remote-procedure-calls and use
+the user task methods "serialize" and "deserialize" internally.
+De-/serialization is done with boost archives an need to be implemented within
+the user task.
+E.g.:
 
-STRUCTURE
--- src/ 
-	Contains all header (*.h/*.hpp) and source files
--- build/
-	The target directory for the build process, temporary content
--- bindings/
-	Language bindings for this package, e.g. put into subfolders such as
-   |-- ruby/ 
-        Ruby language bindings
--- viz/
-        Source files for a vizkit plugin / widget related to this library 
--- resources/
-	General resources such as images that are needed by the program
--- configuration/
-	Configuration files for running the program
--- external/
-	When including software that needs a non standard installation process, or one that can be
-	easily embedded include the external software directly here
--- doc/
-	should contain the existing doxygen file: doxygen.conf
+// includes for boost archives
+#include <boost/archive/text_oarchive.hpp>
+#include <boost/archive/text_iarchive.hpp>
+#include <boost/archive/binary_oarchive.hpp>
+#include <boost/archive/binary_iarchive.hpp>
+
+// serialization for Eigen matrices
+#include <serialization/eigen.hpp>
+
+void Task::serialize(boost::archive::polymorphic_oarchive &oa) {
+    // "myImportantMatrix" and "anotherImportantProperty" are pointers to Eigen::MatrixXd
+    oa << myImportantMatrix;
+    oa << anotherImportantProperty;
+};
+
+void Task::deserialize(boost::archive::polymorphic_iarchive &ia) {
+    Eigen::MatrixXd *newImportantMatrix = 0;
+    Eigen::MatrixXd *newImportantProperty = 0;
+    
+    // deserialize into new object
+    ia >> newImportantMatrix;
+    ia >> newImportantProperty;
+    
+    // set internal variables to new deserialized objects (copy memory)
+    *myImportantMatrix = *newImportantMatrix;
+    *anotherImportantProperty = *newImportantProperty;
+    
+    // delete deserialized data in allocated memory
+    delete newImportantMatrix;
+    delete newImportantProperty;
+};
+
+Documentation about boost serialization can be found at:
+www.boost.org/libs/serialization/
